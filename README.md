@@ -16,7 +16,6 @@ Deploy a local `MongoDB 4.0.10` cluster with a single command.
 
 ## Usage
 
----
 ### Requirements
 
 + [Install Vagrant](https://www.vagrantup.com/docs/installation/)

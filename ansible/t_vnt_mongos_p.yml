@@ -1,0 +1,49 @@
+# ansible-playbook ./test_playbook.yml -i inventory --check
+---
+- name: Provision mongos
+  hosts: vagrant-mongos
+  gather_facts: yes
+  sudo: yes
+
+  tasks:
+    - name: Configure mongod with auth to /etc/mongod.conf
+      template:
+        src: ../templates/mongos.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            config_server: "{{ config_server }}",
+            local_ip: "{{ local_ip }}",
+            data_dir: "{{ data_dir }}",
+          }
+
+    - name: Copy mongos service configuration
+      copy:
+        src: ./files/mongos.service
+        dest: /lib/systemd/system/mongod.service
+        owner: root
+        group: root
+        mode: "0600"
+        force: yes
+
+    - name: Force systemd to reread configs
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted
+        masked: no
+
+    - name: Wait 10 seconds until mongos is available
+      wait_for_connection:
+        delay: 10
+
+    - name: Add shard(s)
+      shell: /usr/bin/mongo "mongodb://{{mongo_usr}}:{{mongo_pw}}@{{ ansible_host }}:27017" --quiet --eval "sh.addShard(\"{{ sh0rs0 }}\")"
+      args:
+        executable: /bin/bash

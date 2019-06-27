@@ -1,0 +1,15 @@
+systemLog:
+   destination: file
+   path: "/var/log/mongodb/mongod.log"
+   logAppend: true
+
+sharding:
+   configDB: rs0/{{ item.config_server }}:27017
+
+net:
+  port: 27017
+  bindIp: 127.0.0.1,{{ item.local_ip }}
+
+security:
+  keyFile: /etc/mongodb-keyfile
+

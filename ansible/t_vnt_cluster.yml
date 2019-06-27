@@ -1,0 +1,5 @@
+---
+- import_playbook: common_vnt.yml
+- import_playbook: t_vnt_node_p.yml
+- import_playbook: t_vnt_conf_p.yml
+- import_playbook: t_vnt_mongos_p.yml

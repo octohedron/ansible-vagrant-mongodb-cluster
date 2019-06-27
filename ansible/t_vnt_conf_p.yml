@@ -1,0 +1,77 @@
+# ansible-playbook ./test_playbook.yml -i inventory --check
+---
+- name: Provision config server
+  hosts: vagrant-config
+  gather_facts: yes
+  sudo: yes
+
+  tasks:
+    - name: Set MongoDB conf without auth to set up root user
+      template:
+        src: ../templates/conf-noauth.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - { local_ip: "{{ local_ip }}", data_dir: "{{ data_dir }}" }
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted
+
+    - name: Add MongoDB user
+      mongodb_user:
+        database: admin
+        name: "{{ mongo_usr }}"
+        password: "{{ mongo_pw }}"
+        state: present
+        roles: root
+
+    - name: Configure mongod with replica set
+      template:
+        src: ../templates/conf-replica.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            config_server: "{{ config_server }}",
+            local_ip: "{{ local_ip }}",
+            data_dir: "{{ data_dir }}",
+          }
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted
+
+    - name: Wait 20 seconds
+      wait_for_connection:
+        timeout: 20
+
+    - name: Create replica set rs0
+      shell: /usr/bin/mongo "mongodb://localhost:27017" --quiet --eval "rs.initiate()"
+      args:
+        executable: /bin/bash
+
+    - name: Configure mongod with auth
+      template:
+        src: ../templates/conf.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            config_server: "{{ config_server }}",
+            local_ip: "{{ local_ip }}",
+            data_dir: "{{ data_dir }}",
+          }
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted

@@ -1,0 +1,121 @@
+# ansible-playbook ./test_playbook.yml -i inventory --check
+---
+- name: Provision replica set nodes
+  hosts: vagrant-nodes
+  gather_facts: yes
+  sudo: yes
+
+  tasks:
+    - name: Set MongoDB conf without auth to set up root user
+      template:
+        src: ../templates/mnode-noauth.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            data_dir: "{{ data_dir }}",
+            rs: "{{ rs }}",
+            local_ip: "{{ local_ip }}",
+          }
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted
+
+    - name: Add MongoDB user
+      mongodb_user:
+        database: admin
+        name: "{{ mongo_usr }}"
+        password: "{{ mongo_pw }}"
+        state: present
+        roles: root
+      when: groups['vagrant-nodes'].index(inventory_hostname) != 2
+
+    - name: Set MongoDB conf to enable replication
+      template:
+        src: ../templates/mnode-replica.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            data_dir: "{{ data_dir }}",
+            rs: "{{ rs }}",
+            local_ip: "{{ local_ip }}",
+          }
+      when: groups['vagrant-nodes'].index(inventory_hostname) != 2
+
+
+    - name: Configure arbiter without auth
+      template:
+        src: ../templates/arbiter-noauth.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            data_dir: "{{ data_dir }}",
+            rs: "{{ rs }}",
+            local_ip: "{{ local_ip }}",
+          }
+      when: groups['vagrant-nodes'].index(inventory_hostname) == 2
+
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted
+
+    - name: Ensure replicaset {{ rs }} exists
+      mongodb_replicaset:
+        login_host: localhost
+        login_user: "{{ mongo_usr }}"
+        login_password: "{{ mongo_pw }}"
+        replica_set: "{{ rs }}"
+        validate: False
+        members:
+          - sh0n0:27017
+          - sh0n1:27017
+          - arbiter:27017
+      when: groups['vagrant-nodes'].index(inventory_hostname) == 0
+
+    - name: Configure mongod with auth to /etc/mongod.conf
+      template:
+        src: ../templates/mnode.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            data_dir: "{{ data_dir }}",
+            rs: "{{ rs }}",
+            local_ip: "{{ local_ip }}",
+          }
+      when: groups['vagrant-nodes'].index(inventory_hostname) != 2
+
+      
+    - name: Configure arbiter with auth
+      template:
+        src: ../templates/arbiter.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      with_items:
+        - {
+            data_dir: "{{ data_dir }}",
+            rs: "{{ rs }}",
+            local_ip: "{{ local_ip }}",
+          }
+      when: groups['vagrant-nodes'].index(inventory_hostname) == 2
+
+    - name: Restart the mongod service
+      service:
+        name: mongod
+        state: restarted

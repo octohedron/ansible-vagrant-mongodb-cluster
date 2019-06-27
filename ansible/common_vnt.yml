@@ -1,0 +1,68 @@
+---
+- name: Operations common to all the nodes
+  hosts: all
+  gather_facts: no
+  sudo: yes
+
+  tasks:
+    - name: Wait for nodes to become reachable/usable
+      wait_for_connection:
+
+    - name: Add mongo ppa key
+      sudo: yes
+      apt_key:
+        keyserver: hkp://keyserver.ubuntu.com:80
+        id: 9DA31620334BD75D9DCB49F368818C72E52529D4
+        state: present
+
+    - name: Add lists file
+      apt_repository:
+        repo: deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse
+        state: present
+        filename: mongodb-org-4.0.list
+
+    - name: Update repositories cache and install mongodb-org package
+      apt:
+        name: mongodb-org
+        state: latest
+        update_cache: yes
+
+    - name: Copy Hosts file
+      copy:
+        src: ./files/vagrant_hosts
+        dest: /etc/hosts
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Copy MongoDB KeyFile
+      copy:
+        src: ./files/mongodb-keyfile
+        dest: /etc/mongodb-keyfile
+        owner: mongodb
+        group: mongodb
+        mode: "0600"
+
+    - name: Install python3-pip
+      apt:
+        pkg: python3-pip
+        state: installed
+      sudo: yes
+
+    - name: Install pymongo
+      pip:
+        name: pymongo
+
+    - name: Create and set data directory owner as MongoDB
+      file:
+        path: "{{ data_dir }}"
+        state: directory
+        mode: "0770"
+        owner: mongodb
+        group: mongodb
+
+    - name: Enable service mongod and ensure it is not masked
+      systemd:
+        name: mongod
+        enabled: yes
+        masked: no

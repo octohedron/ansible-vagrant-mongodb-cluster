@@ -101,14 +101,11 @@ Destroy the cluster
 $ ./destroy.sh 
 ```
 
-Reset the cluster
+Reset the cluster, destroy and re-create the cluster from scratch
 
 ```
 $ ./reset.sh 
 ```
-
-That will destroy and re-create the cluster from scratch
-
 ---
 
 CONTRIBUTIONS: YES

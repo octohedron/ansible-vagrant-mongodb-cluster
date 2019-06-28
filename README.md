@@ -2,6 +2,8 @@
 
 Deploy a local `MongoDB 4.0.10` cluster with a single command.
 
+TLDR: A bash script runs `vagrant up` and `ansible-playbook t_vnt_cluster.yml -i inventory/vagrant_inventory.ini`
+
 ### Cluster topology
 
 ![MongoDB minimal cluste topology](./cluster.svg)

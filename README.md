@@ -2,7 +2,9 @@
 
 Deploy a local `MongoDB 4.0.10` cluster with a single command.
 
-TLDR: A bash script runs `vagrant up` and `ansible-playbook t_vnt_cluster.yml -i inventory/vagrant_inventory.ini`
+### Motivation
+
+Having a test MongoDB cluster locally for testing purposes, along with examples on how to set up everything with ansible. It can be easily modified to run on any cloud provider, such as GCP/AWS, etc.
 
 ### Cluster topology
 
